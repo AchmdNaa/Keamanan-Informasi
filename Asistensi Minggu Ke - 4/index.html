@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Saluran Sandi</title>
+<style>
+  :root{--bg:#e6ecf0;--ink:#17222b;--muted:#5d6b78;--teal:#0d5c63;--soft:#eef3f5;--mine:#dcecee;--line:#cfd8df;--amber:#f2b134}
+  *{box-sizing:border-box}
+  [hidden]{display:none !important}
+  body{margin:0;height:100dvh;display:flex;justify-content:center;background:var(--bg);color:var(--ink);
+       font:16px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+  input{width:100%;padding:10px 12px;font:inherit;border:1px solid var(--line);border-radius:8px}
+  input:focus,button:focus-visible{outline:2px solid var(--teal);outline-offset:1px}
+  button{font:inherit;cursor:pointer}
+  label{display:block;font-size:13px;color:var(--muted);margin-bottom:3px}
+  .utama{padding:10px 20px;border:0;border-radius:8px;background:var(--teal);color:#fff;font-weight:600}
+  .utama:hover{background:#0a4a50}
+
+  /* login */
+  #login{align-self:center;width:100%;max-width:380px;margin:16px;padding:24px;display:grid;gap:14px;
+         background:#fff;border:1px solid var(--line);border-radius:14px}
+  #login h1{margin:0;font-size:22px}
+  #login p{margin:0;color:var(--muted);font-size:14px}
+  .keyrow{position:relative}
+  .keyrow input{padding-right:76px}
+  .keyrow button{position:absolute;right:4px;top:4px;bottom:4px;padding:0 10px;border:0;border-radius:6px;
+                 background:var(--soft);color:var(--muted);font-size:13px}
+
+  /* chat */
+  #app{width:100%;max-width:560px;height:100%;display:flex;flex-direction:column;background:#fff;border-inline:1px solid var(--line)}
+  header{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px}
+  header h1{margin:0;font-size:18px}
+  header p{margin:2px 0 0;color:var(--muted);font-size:13px}
+  .kanan{display:flex;align-items:center;gap:10px}
+  #status{font-size:13px;color:var(--muted);white-space:nowrap}
+  #status::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:#c0392b;margin-right:6px}
+  #status.on::before{background:#2e9e5b}
+  #status.tunggu::before{background:#e0a100}
+  #keluar{padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--muted);font-size:13px}
+  #chat{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+  .kosong{margin:auto;max-width:300px;text-align:center;color:var(--muted)}
+
+  .msg{width:88%;padding:12px 14px;border-radius:14px}
+  .saya{align-self:flex-end;background:var(--mine);border-bottom-right-radius:4px}
+  .lain{align-self:flex-start;background:var(--soft);border-bottom-left-radius:4px}
+  .kepala{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:4px}
+  .nama{font-weight:600;font-size:14px}
+  .waktu{font-size:12px;color:var(--muted)}
+  .judul{font-size:12px;font-weight:600;color:var(--muted);margin:10px 0 4px}
+  .plain{font-size:19px;padding:8px 10px;background:#fff;border-radius:8px;word-break:break-word}
+  .kode{padding-left:8px;border-left:3px solid var(--amber);word-break:break-all;
+        font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
+  .buka{display:block;width:100%;margin-top:12px;padding:12px;border:0;border-radius:8px;background:var(--teal);color:#fff;font-weight:600}
+  .kunci{display:block;margin-top:10px;padding:0;border:0;background:none;color:var(--muted);font-size:12px;text-decoration:underline}
+  #kirim{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--line)}
+</style>
+</head>
+<body>
+
+<div id="login">
+  <div>
+    <h1>Saluran Sandi</h1>
+    <p>Masuk dengan password yang sama di kedua perangkat.</p>
+  </div>
+  <div>
+    <label for="user">Username</label>
+    <input id="user" placeholder="Mac atau HP" autocomplete="off">
+  </div>
+  <div>
+    <label for="pass">Password (key, tidak dikirim)</label>
+    <div class="keyrow">
+      <input id="pass" type="password" autocomplete="off">
+      <button type="button" id="lihat">Lihat</button>
+    </div>
+  </div>
+  <button class="utama" onclick="masuk()">Masuk</button>
+</div>
+
+<div id="app" hidden>
+  <header>
+    <div>
+      <h1>Saluran Sandi</h1>
+      <p>Masuk sebagai <b id="aku"></b></p>
+    </div>
+    <div class="kanan">
+      <span id="status">Menghubungkan...</span>
+      <button id="keluar" onclick="location.reload()">Keluar</button>
+    </div>
+  </header>
+  <div id="chat"></div>
+  <div id="kirim">
+    <input id="pesan" placeholder="Tulis pesan" autocomplete="off">
+    <button class="utama" onclick="kirim()">Kirim</button>
+  </div>
+</div>
+
+<script src="/des.js"></script>
+<script>
+let user, key, terakhir = 0, daftar = [];
+const id = Math.random().toString(36).slice(2);
+const $ = i => document.getElementById(i);
+const jam = () => new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+
+function masuk() {
+  user = $("user").value.trim();
+  key = $("pass").value;
+  if (!user || !key) return alert("Isi username dan password");
+  $("login").hidden = true;
+  $("app").hidden = false;
+  $("aku").textContent = user;
+  tampil();
+  ambil();
+}
+
+async function kirim() {                       // enkripsi di sini, yang dikirim hanya ciphertext
+  const teks = $("pesan").value.trim();
+  if (!teks) return;
+  const c = enkripsi(teks, key);
+  await fetch("/send", { method: "POST", body: JSON.stringify({ dari: id, nama: user, c }) });
+  $("pesan").value = "";
+}
+
+async function ambil() {                       // cek pesan baru tiap 1 detik
+  try {
+    const r = await (await fetch("/poll?since=" + terakhir + "&id=" + id)).json();
+    const ramai = r.online > 1;
+    $("status").textContent = ramai ? "Terhubung · " + r.online + " perangkat" : "Menunggu perangkat lain";
+    $("status").className = ramai ? "on" : "tunggu";
+    for (const m of r.pesan) {
+      terakhir = m.id;
+      const p = dekripsi(m.c, key);            // null = key beda, pesan tidak ditampilkan
+      if (p !== null) daftar.push({ saya: m.dari === id, nama: m.nama, c: m.c, p, waktu: jam(), buka: false });
+    }
+    if (r.pesan.length) { tampil(); $("chat").scrollTop = 1e9; }
+  } catch (e) {
+    $("status").textContent = "Server tidak terjangkau";
+    $("status").className = "";
+  }
+  setTimeout(ambil, 1000);
+}
+
+function buat(tag, kelas, teks) {
+  const e = document.createElement(tag);
+  e.className = kelas;
+  e.textContent = teks;
+  return e;
+}
+
+function tampil() {
+  $("chat").innerHTML = "";
+  if (!daftar.length) $("chat").append(buat("p", "kosong", "Belum ada pesan. Pesan hanya muncul jika password di kedua sisi sama."));
+  for (const m of daftar) {
+    const d = buat("div", "msg " + (m.saya ? "saya" : "lain"), "");
+    const kepala = buat("div", "kepala", "");
+    kepala.append(buat("span", "nama", m.saya ? m.nama + " (saya)" : m.nama), buat("span", "waktu", m.waktu));
+    d.append(kepala);
+    if (m.buka) d.append(buat("div", "judul", "Pesan"), buat("div", "plain", m.p));
+    d.append(buat("div", "judul", "Kode"), buat("div", "kode", m.c));
+    const tombol = buat("button", m.buka ? "kunci" : "buka", m.buka ? "Kunci lagi" : "Buka pesan");
+    tombol.onclick = () => { m.buka = !m.buka; tampil(); };
+    d.append(tombol);
+    $("chat").append(d);
+  }
+}
+
+$("lihat").onclick = () => {
+  const tampilkan = $("pass").type === "password";
+  $("pass").type = tampilkan ? "text" : "password";
+  $("lihat").textContent = tampilkan ? "Sembunyi" : "Lihat";
+};
+$("pesan").onkeydown = e => { if (e.key === "Enter") kirim(); };
+$("pass").onkeydown = e => { if (e.key === "Enter") masuk(); };
+</script>
+</body>
+</html>
