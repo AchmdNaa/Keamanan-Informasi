@@ -104,7 +104,7 @@ const jam = () => new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minu
 
 function masuk() {
   user = $("user").value.trim();
-  key = $("pass").value;
+  key = $("KunciDES67").value;
   if (!user || !key) return alert("Isi username dan password");
   $("login").hidden = true;
   $("app").hidden = false;
